@@ -5,6 +5,8 @@
 # defualt
 ################################################################################
 @@n = 4
+@@topdown  = false
+@@bottomup = false
 @@debug = false
 
 ################################################################################
@@ -19,6 +21,12 @@ OptionParser.new { |opts|
   }
   opts.on("-n [INPUT]"){ |f|
     @@n = f.to_i
+  }
+  opts.on("-t", "--top"){
+    @@topdown = true
+  }
+  opts.on("-b", "--bottom"){
+    @@bottomup = true
   }
   opts.on("-d", "--debug"){
     @@debug = true
@@ -68,7 +76,7 @@ class Array
 end
 
 ################################################################################
-# main
+# util
 ################################################################################
 #### depth ####
 def depth(index)
@@ -79,23 +87,34 @@ def depth(index)
   return -1
 end
 
-#### sibling ####
+#### prev sibling ####
 # 0: 0
 # 1: 1  2
 # 2: 3  4  5
 # 3: 6  7  8  9
-# 4: 10 11 ...
-# n: ↑ has no sibling
-def has_sibling?(index)
+# n: ↑ have no prev sibling
+def has_prev_sibling?(index)
   for n in 0..@@n
     i = n * (n+1) / 2
     return false if index == i
   end
   return true
 end
-def sibling(index)
-  nil if !has_sibling?(index)
+def prev_sibling(index)
   index - 1
+end
+
+#### next sibling ####
+# 0:          0
+# 1:       1  2
+# 2:    3  4  5
+# 3: 6  7  8  9
+# n:          ↑ have no next sibling
+def has_next_sibling?(index)
+  has_prev_sibling?(index + 1)
+end
+def next_sibling(index)
+  index + 1
 end
 
 #### parent ####
@@ -104,24 +123,14 @@ end
 # 2:   3 4 5
 # 3: 6 7 8 9
 def parent(index)
-  return nil if !has_sibling?(index)
   d = depth(index)
   index - d
 end
 
-#### e is addable to ary ####
-def addable?(ary, e)
-  puts "addable?(#{ary}, #{e})" if @@debug
-
-  i = ary.size
-  return true if !has_sibling?(i)
-  return true if ary[parent(i)] == (ary[sibling(i)] - e).abs
-  false
-end
-
 #### show solution ####
 def show(ary)
-  puts "===="
+  puts "#### #{ary} ####"
+
   for n in 0..@@n-1
     s = n * (n+1) / 2
     t = s + n
@@ -129,13 +138,24 @@ def show(ary)
   end
 end
 
-#### enumerate ####
-def enumerate
+################################################################################
+# top-down
+################################################################################
+#### e is addable to ary ####
+def addable?(ary, e)
+  puts "addable?(#{ary}, #{e})" if @@debug
+  i = ary.size
+  return true if !has_prev_sibling?(i)
+  return true if ary[parent(i)] == (ary[prev_sibling(i)] - e).abs
+  false
+end
+
+def topdown
   nums = Array.new(@@size){|i| i+1}
   cs = [ [] ]
   while cs.size > 0
     c = cs.shift
-    p c if @@debug
+
     #### c is a solution ####
     if c.size == @@size
       show(c)
@@ -150,6 +170,55 @@ def enumerate
 end
 
 ################################################################################
+# bottom up
+################################################################################
+def fill(a, i, e)
+  puts "fill(#{a}, #{i}, #{e})" if @@debug
+
+  return false if a.index(e) != nil
+  a[i] = e
+  return true if !has_next_sibling?(i)
+  s = next_sibling(i)
+  p = parent(s)
+  return fill(a, p, (e - a[s]).abs)
+end
+
+def bottomup
+  nums = Array.new(@@size){|i| i+1}
+  seed = Array.new(@@size){|i| 0}
+  cs = [ seed ]
+
+  while cs.size > 0
+    c = cs.shift
+
+    #### c is a solution ####
+    if c.index(0) == nil
+      show(c)
+      next
+    end
+
+    #### expand ####
+    (nums - c).each do |e|
+      i = @@size - c.reverse.index(0) - 1
+      n = c.clone
+      cs.push(n) if fill(n, i, e)
+    end
+  end
+end
+
+################################################################################
 # main
 ################################################################################
-enumerate
+if @@topdown
+  puts "Top-Down Computation"
+  t = Time.now
+  topdown
+  puts "#{Time.now - t} sec"
+end
+
+if @@bottomup
+  puts "Bottom-Up Computation"
+  t = Time.now
+  bottomup
+  puts "#{Time.now - t} sec"
+end
