@@ -4,7 +4,7 @@
 ################################################################################
 # default
 ################################################################################
-@file = "town.txt"
+@file = "prob2.txt"
 @x = 5
 @y = 7
 @@debug = false
@@ -167,7 +167,7 @@ class MyTown
         when 0
           puts "--> Continue"
         when 1..2
-          puts "--> Eate #{a} fishes"
+          puts "--> Eate #{a} fish(es)"
         when 3
           puts "--> Goal"
         when -1
