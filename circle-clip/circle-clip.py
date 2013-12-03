@@ -140,15 +140,19 @@ def getCenterCircumCircle(p0, p1, p2):
 
     aux1 = (dA*(p2.y - p1.y) + dB*(p0.y - p2.y) + dC*(p1.y - p0.y));
     aux2 = -(dA*(p2.x - p1.x) + dB*(p0.x - p2.x) + dC*(p1.x - p0.x));
-    div = (2*(p0.x*(p2.y - p1.y) + p1.x*(p0.y-p2.y) +
-    p2.x*(p1.y - p0.y)));
+    div = (2*(p0.x*(p2.y - p1.y) + p1.x*(p0.y-p2.y) + p2.x*(p1.y - p0.y)));
 
     if div == 0:
         return False;
 
     #aux1 and div is sometimes has big value,
     #so precision error is occured.
-    center = Pos(aux1 / div, aux2 / div)
+
+    #print "aux1 / div", aux1, div, float(aux1) / float(div)
+    #print "aux2 / div", aux2, div, float(aux2) / float(div)
+
+    #when we don't use float cast, this result will be integer!
+    center = Pos(float(aux1) / div, float(aux2) / div)
 
     radius = math.sqrt((center.x - p0.x)*(center.x - p0.x) +
             (center.y - p0.y)*(center.y - p0.y));
@@ -169,8 +173,8 @@ def getMinimumCircle(convList):
             pos.x += p.x
             pos.y += p.y
 
-        pos.x = pos.x / s
-        pos.y = pos.y / s
+        pos.x = float(pos.x) / s
+        pos.y = float(pos.y) / s
         #because of precision problem.
         r = math.ceil(max(getDis(convList[0], pos), getDis(convList[1], pos))) + 1
         pos.x = round(pos.x)
@@ -195,34 +199,35 @@ def getMinimumCircle(convList):
                 Vec(maxTwoPos[1].x - topPos.x, maxTwoPos[1].y - topPos.y)):
             #gaishin!
             c = getCenterCircumCircle(pList[0], pList[1], pList[2])
-            #c.show()
             c.pos.x = round(c.pos.x)
             c.pos.y = round(c.pos.y)
-            #because of precision problem.
-            #c.r = math.ceil(c.r) + 2
-            c.r = math.ceil(c.r) + 3
+            c.r = math.ceil(c.r) + 1
+            #c.r = math.ceil(c.r) + 3
             #cList = []
             #cList.append(c)
             #graphPlot(convList, cList, pList)
         else: #90 also executes this flow
-            midP = Pos((maxTwoPos[0].x + maxTwoPos[1].x) / 2,
-                    (maxTwoPos[0].y + maxTwoPos[1].y) / 2)
+            midP = Pos((maxTwoPos[0].x + maxTwoPos[1].x) / float(2),
+                    (maxTwoPos[0].y + maxTwoPos[1].y) / float(2))
             r = getVecLen(Vec(maxTwoPos[0].x - midP.x, maxTwoPos[0].y - midP.y))
             c = Circle(midP, r)
             c.pos.x = round(c.pos.x)
             c.pos.y = round(c.pos.y)
             #because of precision problem.
-            c.r = math.ceil(c.r) + 2
+            c.r = math.ceil(c.r) + 1
 
         if checkWithinCircle(convList, c):
             minC = c
             break
 
     if minC is None:
-        #graphPlot([], [], convList)
-        #for p in convList:
-        #    print p.x, p.y
-        exit()
+        #error occured!
+        graphPlot([], [], convList)
+        print "---can't write circle with these points---"
+        for p in convList:
+            print p.x, p.y
+        print "-------"
+        #exit()
 
     return minC
 
@@ -264,7 +269,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="plot circle-clip dataList and\
             result to graph. matplotlib is required. if your environmentdoesn't\
             have this library, please use -O option.\
-            Ex:python -O circle-clip.py -p prb.txt > ans.txt")
+            Ex:python -O circle-clip.py -p prb.txt")
     parser.add_argument("-p", "--posData", nargs="?", type=argparse.FileType("r"),
             default="./prb.txt", help="data filename")
     #parser.add_argument("-o", "--outImage", nargs="?", type=argparse.FileType("w"),
@@ -322,7 +327,7 @@ if __name__ == '__main__':
 
     while cMaxNum < len(circleList):
         #if time exceeds, get 1circle result immediately!
-        if time.time()- strt > 55:
+        if time.time()- strt > 10:
             circleList = []
             convList = getConvexHull(dataList)
             c = getMinimumCircle(convList)
