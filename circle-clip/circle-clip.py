@@ -106,7 +106,7 @@ def dot(p1, p2):
     return p1.x * p2.x + p1.y * p2.y
 
 def getLowestYPoint(posList):
-    lowP = Pos(0, 500)
+    lowP = Pos(0, 65536)
     for p in posList:
         if p.y < lowP.y:
             lowP = p
@@ -248,6 +248,13 @@ def getConvexHull(posList):
             if cosVal > maxCosVal:
                 maxCosVal = cosVal
                 nextP = p
+            #this code has trade off.
+            #we have to choose additional branch or may add unnecessary convexHull
+            #now I choose may add unnecessary convexHull way.
+            #elif cosVal == maxCosVal:
+            #    if getVecLen(Vec(p.x - currentP.x, p.y - currentP.y)) > getVecLen(prevVec):
+            #        maxCosVal = cosVal
+            #        nextP = p
         convList.append(nextP)
         prevVec = Vec(nextP.x - currentP.x, nextP.y - currentP.y)
         currentP = nextP
@@ -299,12 +306,18 @@ if __name__ == '__main__':
         index = index + 1
 
     #remove duplicate pos!
-    dataList = sorted(set(dataList), key=dataList.index)
+    tempDic = {}
+    for d in dataList:
+        tempTuple = [d.x, d.y]
+        tempDic[tuple(tempTuple)] = d
+    dataList = tempDic.values()
 
+    #prepare circles
     for p in dataList:
         c = Circle(p, 1)
         c.incList.append(p)
         circleList.append(c)
+        #prepare dict from pos to cicle
         pToCDic[p] = c
 
     cNum = len(dataList)
@@ -327,7 +340,7 @@ if __name__ == '__main__':
 
     while cMaxNum < len(circleList):
         #if time exceeds, get 1circle result immediately!
-        if time.time()- strt > 10:
+        if time.time()- strt > 55:
             circleList = []
             convList = getConvexHull(dataList)
             c = getMinimumCircle(convList)
@@ -360,28 +373,29 @@ if __name__ == '__main__':
 
                 #calculate the minimum circle that can include points.
                 convList = getConvexHull(c.incList)
-                _c = getMinimumCircle(convList)
-                _c.incList = c.incList
+                newC = getMinimumCircle(convList)
+                newC.incList = c.incList
 
                 #remove old circles and add new circle.
                 circleList.remove(c)
                 circleList.remove(pToCDic[d.pos])
-                circleList.append(_c)
+                circleList.append(newC)
 
                 #graphPlot(dataList, circleList, convList)
 
                 #remove part of dList with old circles
-                dList = filter(lambda x: x.c is not c, dList)
-                dList = filter(lambda x: x.c is not pToCDic[d.pos], dList)
+                #dList = filter(lambda x: x.c is not c, dList)
+                #dList = filter(lambda x: x.c is not pToCDic[d.pos], dList)
+                dList = filter(lambda x: x.c is not c and x.c is not pToCDic[d.pos], dList)
 
                 #update pToCDic
-                for p in _c.incList:
-                    pToCDic[p] = _c
+                for p in newC.incList:
+                    pToCDic[p] = newC
 
                 #recalculate distance between new circle and other points.
                 for p in dataList:
-                    if p not in _c.incList:
-                        dList.append(DisInfo(_c, p, getDis(p, _c.pos)))
+                    if p not in newC.incList:
+                        dList.append(DisInfo(newC, p, getDis(p, newC.pos)))
 
                 #sorted by distance!
                 dList.sort(cmp=lambda x, y:cmp(x, y), key=lambda x:x.d)
